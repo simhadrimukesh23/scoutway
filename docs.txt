@@ -1,0 +1,239 @@
+# ScoutWay — Travel Story Sharing App
+### Full-Stack Project Documentation (MERN + Tailwind CSS)
+
+---
+
+## 1. Project Overview
+
+**ScoutWay** is a full-stack travel journaling and story-sharing platform. Users can log in (or continue as a guest) and browse travel stories shared by everyone on the platform — similar to an open-source feed. Any registered user can add their own travel story, including the trip name, destination, travel dates, a day-by-day activity thread with costs, and a written narrative with a cover photo. All published stories are publicly visible to every user.
+
+**Core idea:** *"Journal your trips. Discover everyone else's."*
+
+---
+
+## 2. Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Database | MongoDB (Mongoose ODM) |
+| Backend | Express.js (Node.js runtime) |
+| Frontend | React.js |
+| Styling | Tailwind CSS |
+| Auth | JWT (email/password) + Google OAuth 2.0 + Guest mode |
+| File/Image Upload | Multer / Cloudinary (or similar) for story cover images |
+
+**Suggested stack name:** MERN + Tailwind
+
+---
+
+## 3. User Roles
+
+| Role | Capabilities |
+|---|---|
+| **Guest** | Browse/read all public stories. Cannot post, like, or comment. Prompted to sign up when attempting a restricted action. |
+| **Registered User** | Browse stories, add/edit/delete own stories, like stories, search/filter stories. |
+
+---
+
+## 4. Screens & Pages (based on the design mockups)
+
+### 4.1 Landing Page
+- Full-bleed hero image (travel/nature photo)
+- Headline: *"Capture Your Journeys"*
+- Subtext: *"Record your travel experiences and memories in your personal travel journal."*
+- CTA buttons → Login / Create Account
+- Secondary promo panel: *"Join the Adventure — Create an account and start preserving your memories."*
+
+### 4.2 Login Page
+- Fields: Email, Password (with show/hide toggle)
+- **Login** button (primary, teal)
+- Divider: "Or"
+- **Create Account** button (secondary)
+- **Continue with Google** option
+- **Continue as Guest** option
+- Link to Register page for new users
+
+### 4.3 Register Page
+- Fields: Name, Email, Password, Confirm Password
+- Continue with Google option
+- Link back to Login
+
+### 4.4 Home / Story Feed Page (main dashboard)
+- Top navbar: Logo ("Travel Story"), global **Search bar** (search notes/stories), user avatar + name + Logout
+- Page heading: **"Travel Stories from [date] – [date]"** with a clear/reset (×) filter chip
+- **Story Grid** — card layout (2 columns on desktop), each card shows:
+  - Cover image
+  - Heart/favorite icon (top-right, toggle like)
+  - Story title (e.g., "A Day at the Great Wall")
+  - Date of the trip
+  - Short excerpt/preview of the story text
+  - Location tag with pin icon (e.g., "Great Wall of China, Beijing")
+- **Calendar widget** (top-right, sticky) — month view (e.g., "September 2024") with prev/next arrows, used to filter stories by date/date range. Selected date(s) highlighted.
+- **Empty state** (when no stories exist yet): illustration + "Start creating your first Travel Story! Click the 'Add' button to jot down your thoughts, ideas, and memories. Let's get started!"
+
+### 4.5 Story Detail Page
+- Header with **Update Story** and **Delete** buttons (only visible to the story's author)
+- Story title
+- Date + location tag
+- Cover image
+- Full story text/description
+- **Activity Thread** (see Section 5.2 below) — list of activities done during the trip, each with an associated cost
+- Like count / like button
+
+### 4.6 Add / Edit Story Page (modal or side panel)
+- **Title** field (trip/story name)
+- **Date** field (date picker)
+- **Location/Place** field
+- **From Date – To Date** (trip duration range)
+- **Cover Image Upload** (drag/browse image files)
+- **Story** textarea (main narrative)
+- **Activity Thread builder** — repeatable rows, each with:
+  - Activity/Place description
+  - Cost (numeric input; user may leave as **"-"** if unknown/not applicable)
+- **Add Story** / **Update Story** submit button
+
+---
+
+## 5. Data Models
+
+### 5.1 User
+```json
+{
+  "_id": "ObjectId",
+  "name": "String",
+  "email": "String (unique)",
+  "password": "String (hashed, null if Google/guest)",
+  "authProvider": "local | google | guest",
+  "googleId": "String (optional)",
+  "avatar": "String (URL, optional)",
+  "createdAt": "Date"
+}
+```
+
+### 5.2 Story
+```json
+{
+  "_id": "ObjectId",
+  "userId": "ObjectId (ref: User)",
+  "title": "String",              // e.g. "Adventure in the Amazon Rain Forest"
+  "place": "String",               // e.g. "Amazon Rainforest, Brazil"
+  "tripStartDate": "Date",
+  "tripEndDate": "Date",
+  "coverImage": "String (URL)",
+  "description": "String",         // main story text
+  "activities": [
+    {
+      "activityName": "String",    // e.g. "Boat ride into the jungle"
+      "cost": "String"             // numeric value OR "-" if unknown
+    }
+  ],
+  "likes": ["ObjectId (ref: User)"],
+  "isPublic": "Boolean (default true)",
+  "createdAt": "Date",
+  "updatedAt": "Date"
+}
+```
+
+> **Note on cost field:** Since users may not know/remember the cost of every activity, store `cost` as a **String** rather than Number, defaulting to `"-"`. Handle numeric parsing/formatting only when a valid number is entered (e.g., for totals or analytics).
+
+---
+
+## 6. API Endpoints
+
+### Auth
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/api/auth/register` | Register new user |
+| POST | `/api/auth/login` | Login with email/password, returns JWT |
+| GET | `/api/auth/google` | Initiate Google OAuth |
+| GET | `/api/auth/google/callback` | Google OAuth callback |
+| POST | `/api/auth/guest` | Create/assign temporary guest session |
+| POST | `/api/auth/logout` | Logout / clear session |
+| GET | `/api/auth/me` | Get logged-in user profile |
+
+### Stories
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/api/stories` | Get all public stories (supports query params: `search`, `startDate`, `endDate`) |
+| GET | `/api/stories/:id` | Get single story detail |
+| POST | `/api/stories` | Create new story (auth required) |
+| PUT | `/api/stories/:id` | Update story (author only) |
+| DELETE | `/api/stories/:id` | Delete story (author only) |
+| PATCH | `/api/stories/:id/like` | Toggle like on a story (auth required) |
+| POST | `/api/stories/:id/image` | Upload/replace story cover image |
+
+---
+
+## 7. Authentication Flow
+
+1. **Local (email/password):** Register → password hashed with bcrypt → stored in DB. Login → compare hash → issue JWT → stored in httpOnly cookie or localStorage.
+2. **Google OAuth:** Use `passport-google-oauth20` on the backend. On success, find-or-create user by `googleId`/email → issue JWT.
+3. **Guest mode:** No credentials required. Backend issues a short-lived JWT with `authProvider: "guest"` and read-only permissions (frontend disables Add/Edit/Delete/Like buttons and redirects guest to Register when attempted).
+4. Protect story-mutation routes (`POST`, `PUT`, `DELETE`, `PATCH /like`) with middleware that verifies JWT and checks `authProvider !== "guest"`.
+
+---
+
+## 8. Key Frontend Components (React)
+
+```
+src/
+├── components/
+│   ├── Navbar.jsx
+│   ├── SearchBar.jsx
+│   ├── StoryCard.jsx
+│   ├── CalendarWidget.jsx
+│   ├── ActivityThreadForm.jsx
+│   ├── StoryForm.jsx (Add/Edit modal)
+│   ├── EmptyState.jsx
+│   └── ProtectedRoute.jsx
+├── pages/
+│   ├── LandingPage.jsx
+│   ├── LoginPage.jsx
+│   ├── RegisterPage.jsx
+│   ├── HomeFeedPage.jsx
+│   ├── StoryDetailPage.jsx
+│   └── NotFoundPage.jsx
+├── context/
+│   └── AuthContext.jsx
+├── services/
+│   └── api.js (axios instance + endpoints)
+└── App.jsx
+```
+
+---
+
+## 9. UI/UX Notes (matching your mockups)
+
+- **Color palette:** Deep navy/teal (`#0F3D5C`–ish) for headings and primary buttons, light aqua/mint background (`#EAF6F7`-ish) for page backgrounds, white cards with soft shadows.
+- **Typography:** Bold, rounded sans-serif for headings (large display type on landing page); clean sans-serif for body text.
+- **Cards:** Rounded corners, subtle shadow, heart icon top-right for likes, image top, text content bottom.
+- **Calendar:** Reusable component appearing both on the feed page (as a filter) and can double as a date-range picker inside the Add Story form.
+- **Consistent components:** The same `Login` panel design (image left, form right) should be reused for Register.
+
+---
+
+## 10. Suggested Build Order (for the AI/dev to follow)
+
+1. Set up MERN boilerplate (Express + MongoDB connection + React + Tailwind config)
+2. Build User model + Auth routes (local, Google, guest) + JWT middleware
+3. Build Story model + CRUD routes
+4. Build frontend Auth pages (Landing, Login, Register) with routing
+5. Build Home Feed page: story grid, search, calendar filter
+6. Build Add/Edit Story form with dynamic Activity Thread rows
+7. Build Story Detail page with Update/Delete (author-only) and Like button
+8. Add guest-mode restrictions across UI
+9. Polish responsive design + empty states
+10. Deploy (e.g., frontend on Vercel/Netlify, backend on Render/Railway, DB on MongoDB Atlas)
+
+---
+
+## 11. Suggested Project Name & Tagline
+
+- **Name:** ScoutWay
+- **Tagline options:** *"Where every trip becomes a story."*
+
+TO Run:
+terminal 1:(backend server)
+npm run dev:server
+terminal 2:(frontend client)
+npm run dev:client

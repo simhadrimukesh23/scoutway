@@ -1,0 +1,11 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Map Outline Box -->
+  <rect x="110" y="210" width="292" height="220" rx="40" stroke="#F97316" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Map Fold Lines -->
+  <path d="M135 345L225 250" stroke="#F97316" stroke-width="20" stroke-linecap="round"/>
+  <path d="M220 340L300 420" stroke="#F97316" stroke-width="20" stroke-linecap="round"/>
+  <path d="M300 275L375 335" stroke="#F97316" stroke-width="20" stroke-linecap="round"/>
+  <path d="M255 330H380" stroke="#F97316" stroke-width="20" stroke-linecap="round"/>
+  <!-- Location Pin Teardrop -->
+  <path fill-rule="evenodd" clip-rule="evenodd" d="M256 70C200.772 70 156 114.772 156 170C156 242 256 315 256 315C256 315 356 242 356 170C356 114.772 311.228 70 256 70ZM256 205C275.33 205 291 189.33 291 170C291 150.67 275.33 135 256 135C236.67 135 221 150.67 221 170C221 189.33 236.67 205 256 205Z" fill="#F97316"/>
+</svg>
